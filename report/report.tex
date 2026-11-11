@@ -443,7 +443,7 @@ $\al1\att\al2\att\al3$, $\al3\att\al4$, $\al3\att\al5$ (+$\al6\att\al3$ in 5.11)
 \rowcolor{brand}\thd{} & \thd{Example 5.10} & \thd{Example 5.11}\\
 \rowcolor{white} Truthful outcome & $\{\al1,\al3\}$ & $\{\al1,\al4,\al5,\al6\}$\\
 \rowcolor{rowalt} Utilities $u_x,u_y,u_z$ & $1,\ 0,\ 1$ & $4,\ 0,\ 0$\\
-\rowcolor{white} $x$'s best response & $\{\al4,\al5\}$ (\textbf{hide $\al1$}), utility 2 & reveal everything, utility 4\\
+\rowcolor{white} $x$'s best response & $\{\al4,\al5\}$ (\textbf{hide $\al1$}), utility 2 & reveal everything, utility 4 (hiding $\al1$ gives $\{\al2,\al4,\al5,\al6\}$, utility 3)\\
 \rowcolor{rowalt} Strategyproof? & \no\ ($x$ hides $\al1$: outcome $\{\al2,\al4,\al5\}$) & \yes\\
 \rowcolor{white} Thm 5.4 condition & fails: $\al1\att\al2\att\al3\att\al4$ (and $\al5$) & fails: same paths\\
 \tabend
@@ -486,7 +486,7 @@ empty); \textbf{1000 instances per $p$}, seed 2026. For each instance we record 
 \end{tabular}
 \end{table}
 
-\begin{figure}[H]\centering
+\begin{figure}[tbp]\centering
 \includegraphics[width=0.62\textwidth]{../experiments/results/fig_sp_vs_p.png}
 \caption{Q1: fraction of strategyproof instances and of instances satisfying the Theorem~5.4 condition.}\label{fig:q1}
 \end{figure}
@@ -554,13 +554,14 @@ confirmed on the witness of all 1983 manipulable instances.
 \end{tabular}
 \end{table}
 
-Yes, and they are the norm. Theorem~5.4 only asks whether an odd path \emph{exists}; it ignores whether hiding actually makes
+Yes, and they are the norm: 876 of the 1{,}017 strategyproof instances (86\,\%) violate the condition. Theorem~5.4 only asks whether an odd path \emph{exists}; it ignores whether hiding actually makes
 the target \textsf{in}, and whether the gain outweighs the loss. \code{classify\_agent} checks every revealed set and every hidden
 set and puts each violating agent in one of three classes:
 
 \begin{itemize}
   \item \textbf{Offset (856).} Hiding does free one of the agent's arguments, but the agent always loses at least as many,
-        usually the hidden argument itself, so the net gain is $\le0$. In 472 of these instances the only violation is a direct
+        usually the hidden argument itself, so the net gain is $\le0$ (per agent: 1048 of 1195 are exact swaps with net change 0,
+        147 always lose strictly). In 472 of these instances the only violation is a direct
         attack inside a type: in \#224, $y$ owns $\al1\att\al4$ and can trade $\al1$ for $\al4$ but never gain. In \#254,
         $x=\{\al2,\al4\}$ with $\al2\att\al6\att\al1\att\al4$: hiding $\al2$ frees $\al4$ but loses $\al2$. Example~5.10 is the case
         where the trade is \emph{not} balanced (hiding one argument frees two).
