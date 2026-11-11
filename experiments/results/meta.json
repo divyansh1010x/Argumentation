@@ -1,0 +1,16 @@
+{
+  "instances_per_p": 1000,
+  "p": [
+    0.15,
+    0.25,
+    0.35
+  ],
+  "n_range": [
+    6,
+    8
+  ],
+  "agents": 3,
+  "seed": 2026,
+  "self_attacks": false,
+  "seconds": 2.5
+}
