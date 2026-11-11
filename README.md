@@ -10,7 +10,7 @@ Reference: G. Weiss (ed.), *Multiagent Systems*, 2nd ed., Chapter 5 "Argumentati
 |---|---|
 | Code | `argengine/` (library), `experiments/` (experiment scripts), `tests/` (161 tests) |
 | Readme | this file |
-| Report | `report/report.pdf` (source: `report/report.md`) |
+| Report | `report/report.pdf` (source: `report/report.tex`) |
 | Demonstration | `demo/demo.ipynb` (executed, with outputs), `demo/demo.html` (static copy), `python -m argengine.demo` (CLI) |
 
 ## Setup
@@ -79,8 +79,9 @@ For speed, `MechanismInstance(arguments, attacks, types)` caches the grounded ex
 .venv/bin/python -m argengine.demo --file my_af.json    # your own framework (JSON or ASPARTIX .apx)
 .venv/bin/python experiments/run_experiments.py         # 3 × 1000 instances, ~3 s
 .venv/bin/python experiments/analyse.py                 # tables, plots, Q2/Q3 examples -> experiments/results/
+.venv/bin/python experiments/stress_test.py             # Thm 5.4 counterexample search (exhaustive n<=4 + 300k random, ~1.5 min)
+(cd report && tectonic report.tex)                      # the report PDF (or xelatex report.tex, run twice)
 .venv/bin/python demo/build_notebook.py && (cd demo && ../.venv/bin/python -m nbconvert --to notebook --execute --inplace demo.ipynb)
-(cd report && pandoc report.md -o report.pdf --pdf-engine=xelatex --resource-path=. -V mainfont="Times New Roman" -V monofont="Menlo")
 ```
 
 JSON input format: `{"arguments": ["a","b"], "attacks": [["a","b"]], "types": [["a"],["b"]]}`. The `types` field is optional; if it is present, the demo also runs the strategic analysis.
@@ -97,7 +98,7 @@ Setup: 3 agents, n ~ U{6,7,8} arguments, each attack a→b (a ≠ b) present wit
 
 - **Q2 is empty under every reading of "odd-length path":** walk or simple path, with or without α = β.
   - An exhaustive check of all instances with n ≤ 4 and a 300 000-instance stress test also found no counterexample.
-  - The report (§5.2) proves why: a sharpened Theorem 5.4 holds, needing only odd *simple* paths between *distinct* arguments of the same agent.
+  - The report (§7.3) proves why: a sharpened Theorem 5.4 holds, needing only odd *simple* paths between *distinct* arguments of the same agent.
 - **Q3 instances are explained in three ways:**
   - **offset:** hiding frees one of the agent's arguments but costs at least as much (856 instances);
   - **self-neutralised:** the agent's own arguments block the gain, as α6 does in Example 5.11 (2 instances);
@@ -111,7 +112,7 @@ Setup: 3 agents, n ~ U{6,7,8} arguments, each attack a→b (a ≠ b) present wit
 - **Lying model.** Agents can only *hide* arguments, as in the book (p. 199). Utility is uᵢ(o) = |Aᵢ ∩ o|.
 - **Stable semantics with no extensions.** When none exist, every argument is reported as *rejected* (with `n_extensions = 0`), not vacuously skeptically accepted.
 - **Two readings of the Theorem 5.4 condition.** Both are implemented:
-  - `simple`: an odd simple path, which is the literal graph-theoretic meaning and the primary reading;
+  - `simple` (default): an odd simple path, which is the literal graph-theoretic meaning and the primary reading;
   - `walk`: an odd walk, found by a parity BFS that is safe on cycles.
 
   `include_self` toggles whether α = β counts as a violation.
@@ -124,10 +125,9 @@ Setup: 3 agents, n ~ U{6,7,8} arguments, each attack a→b (a ≠ b) present wit
 ```
 argengine/   framework.py  semantics.py  labelling.py  acceptance.py  strategic.py
              generators.py examples.py   io.py         viz.py         demo.py
-experiments/ run_experiments.py  analyse.py  results/ (CSV, JSONL, summary.md, plots, examples/)
+experiments/ run_experiments.py  analyse.py  stress_test.py  results/ (CSV, JSONL, summary.md, plots, examples/)
 tests/       test_framework.py  test_book_examples.py  test_semantics_properties.py
              test_strategic.py  test_demo.py
 demo/        demo.ipynb  demo.html  build_notebook.py  figures/
-report/      report.md  report.pdf
-PLAN.md      implementation plan
+report/      report.tex  report.pdf  stress_macros.tex  figures/
 ```

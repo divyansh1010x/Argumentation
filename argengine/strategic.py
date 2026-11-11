@@ -286,7 +286,7 @@ class MechanismInstance:
     satisfies_theorem_5_3 = is_strategyproof
 
     # --------------------------------------------- Theorem 5.4 (sufficient)
-    def theorem_5_4(self, mode: str = WALK, include_self: bool = True) -> Thm54Result:
+    def theorem_5_4(self, mode: str = SIMPLE, include_self: bool = True) -> Thm54Result:
         """Check the graph condition of Theorem 5.4 on the *full* graph: no agent
         holds α, β with an odd-length directed path α ⇝ β.
 
@@ -411,7 +411,7 @@ def is_strategyproof(attacks: Iterable, types: Sequence[Iterable], all_witnesses
 satisfies_theorem_5_3 = is_strategyproof
 
 
-def theorem_5_4_condition(attacks: Iterable, types: Sequence[Iterable], mode: str = WALK,
+def theorem_5_4_condition(attacks: Iterable, types: Sequence[Iterable], mode: str = SIMPLE,
                           include_self: bool = True) -> Thm54Result:
     """Item 4: Theorem 5.4 sufficient condition (no odd path inside any agent's type)."""
     return MechanismInstance.from_attacks(attacks, types).theorem_5_4(mode, include_self)
