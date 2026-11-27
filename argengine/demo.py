@@ -39,6 +39,17 @@ def header(title: str) -> None:
     print(f"\n{RULE}\n{title}\n{RULE}")
 
 
+def slug(title: str) -> str:
+    return title.lower().replace(" ", "_").replace(".", "_")
+
+
+def save(fig, out: Path) -> None:
+    import matplotlib.pyplot as plt
+    fig.savefig(out, dpi=150)
+    plt.close(fig)
+    print("   figure:", out)
+
+
 # ------------------------------------------------------------------ Part 1
 def show_framework(title: str, af: ArgumentationFramework, figures: Path | None = None) -> None:
     header(title)
@@ -65,11 +76,14 @@ def show_framework(title: str, af: ArgumentationFramework, figures: Path | None 
     for a, row in table.items():
         print("   " + name(a).ljust(6) + "".join(short[row[s]].ljust(13) for s in sems))
     if figures:
-        from .viz import draw_labellings
+        from .viz import draw_extension_lattice, draw_grounded_trace, draw_labellings
+        stem = slug(title)
         fig = draw_labellings(af, labs, titles=[f"labelling {k + 1}" for k in range(len(labs))])
-        out = figures / (title.lower().replace(" ", "_").replace(".", "_") + ".png")
-        fig.savefig(out, dpi=150)
-        print("   figure:", out)
+        save(fig, figures / f"{stem}.png")
+        save(draw_grounded_trace(af), figures / f"{stem}_grounded_trace.png")
+        ax = draw_extension_lattice(af, title=f"{title}: complete extensions ordered by ⊆")
+        ax.figure.tight_layout()
+        save(ax.figure, figures / f"{stem}_lattice.png")
 
 
 def figure_5_1_walkthrough() -> None:
@@ -140,9 +154,11 @@ def show_mechanism(title: str, m: MechanismInstance, figures: Path | None = None
             axes[1].set_axis_off()
             axes[1].set_title("strategyproof: no profitable deviation", fontsize=10)
         fig.tight_layout()
-        out = figures / (title.lower().replace(" ", "_").replace(".", "_") + ".png")
-        fig.savefig(out, dpi=150)
-        print("   figure:", out)
+        save(fig, figures / f"{slug(title)}.png")
+        from .viz import draw_best_response_table
+        ax = draw_best_response_table(m, 0)
+        ax.figure.tight_layout()
+        save(ax.figure, figures / f"{slug(title)}_best_response_x.png")
 
 
 def misprints() -> None:

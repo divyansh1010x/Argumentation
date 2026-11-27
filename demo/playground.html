@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Argumentation Playground</title>
+<meta name="description" content="Interactive Dung argumentation frameworks: semantics, labellings, acceptance and the grounded direct mechanism. Self-contained, works offline.">
+<style>
+:root {
+  --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6a65; --line: #dcdad3;
+  --accent: #2f5fd0; --accent-ink: #ffffff;
+  --in: #e3f4e6; --in-stroke: #1f7a3a;
+  --out: #ffffff; --out-stroke: #b3261e;
+  --undec: #cfcdc6; --undec-stroke: #55534d;
+  --node: #ffffff; --node-stroke: #1d1d1b; --edge: #3b3a36; --edge-faint: rgba(59,58,54,.18);
+  --ax: #1f77b4; --ay: #e07b00; --az: #8e44ad;
+  --chip: #eeece6; --chip-on: #dfe7fb; --warn: #8a5a00; --warn-bg: #fff4d6; --ok: #1f7a3a; --bad: #b3261e;
+  --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161615; --panel: #201f1d; --ink: #ecebe6; --muted: #a09e97; --line: #3a3935;
+    --accent: #7aa2ff; --accent-ink: #0d1530;
+    --in: #1e3a26; --in-stroke: #6fd08c; --out: #201f1d; --out-stroke: #ff8a80;
+    --undec: #4a4944; --undec-stroke: #c9c7c0; --node: #2a2926; --node-stroke: #ecebe6;
+    --edge: #c9c7c0; --edge-faint: rgba(201,199,192,.18);
+    --ax: #5aa9e6; --ay: #ffa646; --az: #c58cf0;
+    --chip: #2c2b28; --chip-on: #26355e; --warn: #ffd27a; --warn-bg: #3a2f12; --ok: #6fd08c; --bad: #ff8a80;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161615; --panel: #201f1d; --ink: #ecebe6; --muted: #a09e97; --line: #3a3935;
+  --accent: #7aa2ff; --accent-ink: #0d1530;
+  --in: #1e3a26; --in-stroke: #6fd08c; --out: #201f1d; --out-stroke: #ff8a80;
+  --undec: #4a4944; --undec-stroke: #c9c7c0; --node: #2a2926; --node-stroke: #ecebe6;
+  --edge: #c9c7c0; --edge-faint: rgba(201,199,192,.18);
+  --ax: #5aa9e6; --ay: #ffa646; --az: #c58cf0;
+  --chip: #2c2b28; --chip-on: #26355e; --warn: #ffd27a; --warn-bg: #3a2f12; --ok: #6fd08c; --bad: #ff8a80;
+  --shadow: none;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+header { padding: 18px 16px 6px; max-width: 1280px; margin: 0 auto; }
+header h1 { font-size: 20px; margin: 0 0 2px; letter-spacing: -.01em; }
+header p { margin: 0; color: var(--muted); }
+main { max-width: 1280px; margin: 0 auto; padding: 10px 16px 32px; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { main { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; border-bottom: 1px solid var(--line); align-items: center; }
+.toolbar .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+button, select, input[type=number] { font: inherit; color: var(--ink); background: var(--chip); border: 1px solid var(--line); border-radius: 7px; padding: 5px 10px; cursor: pointer; }
+input[type=number] { width: 64px; cursor: text; }
+button:hover { border-color: var(--muted); }
+button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.on .note { color: inherit; opacity: .75; }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.hint { padding: 6px 12px; color: var(--muted); font-size: 12.5px; border-bottom: 1px solid var(--line); min-height: 30px; }
+#stage { width: 100%; height: auto; display: block; touch-action: none; user-select: none; aspect-ratio: 4 / 3; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; padding: 8px 12px 12px; font-size: 12.5px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 14px; border-radius: 50%; border: 2px solid; display: inline-block; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tabs button { border: 0; border-radius: 0; background: transparent; padding: 10px 14px; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; }
+.tabs button.on { color: var(--ink); border-bottom-color: var(--accent); background: transparent; }
+.pane { padding: 14px; display: none; }
+.pane.on { display: block; }
+h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 14px 0 8px; font-weight: 600; }
+h3:first-child { margin-top: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { background: var(--chip); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.chip.on { background: var(--chip-on); border-color: var(--accent); }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.tscroll { overflow-x: auto; }
+body { overflow-x: hidden; }
+th, td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: 12px; }
+td.c { text-align: center; }
+.badge { display: inline-block; min-width: 22px; text-align: center; border-radius: 5px; padding: 1px 5px; font-size: 12px; font-weight: 600; }
+.b-S { background: var(--in); color: var(--in-stroke); }
+.b-C { background: var(--chip-on); color: var(--accent); }
+.b-R { background: var(--chip); color: var(--muted); }
+.note { color: var(--muted); font-size: 12.5px; margin: 6px 0; }
+.warn { background: var(--warn-bg); color: var(--warn); border-radius: 7px; padding: 7px 10px; font-size: 13px; margin: 8px 0; }
+.ok { color: var(--ok); font-weight: 600; }
+.bad { color: var(--bad); font-weight: 600; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; }
+textarea { width: 100%; min-height: 180px; font: 12.5px/1.4 ui-monospace, Menlo, Consolas, monospace; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 8px; }
+.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; }
+.agent-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+.witness { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 6px 0; }
+.trace { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+footer { max-width: 1280px; margin: 0 auto; padding: 0 16px 24px; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Argumentation Playground</h1>
+  <p>Build a Dung framework, see every semantics, then hand arguments to agents and test the grounded direct mechanism (Weiss, ch. 5). Runs offline; nothing is sent anywhere.</p>
+</header>
+
+<main>
+  <section class="card" aria-label="Graph editor">
+    <div class="toolbar">
+      <select id="preset" aria-label="Load example"></select>
+      <span class="sep"></span>
+      <div class="seg" role="group" aria-label="Edit mode">
+        <button data-mode="move" class="on" title="Drag nodes; click a node to select it (V)">Move</button>
+        <button data-mode="arg" title="Click empty space to add an argument (A)">+ Argument</button>
+        <button data-mode="att" title="Click attacker, then target; same node twice = self-attack (E)">+ Attack</button>
+        <button data-mode="del" title="Click a node or an arrow to delete it (D)">Delete</button>
+        <button data-mode="own" title="Click a node to cycle its owner: none → x → y → z (O)">Owner</button>
+        <button data-mode="hide" title="Click an owned argument to hide/reveal it in the mechanism (H)">Hide</button>
+      </div>
+      <span class="sep"></span>
+      <button id="relayout" title="Arrange on a circle">Circle layout</button>
+      <button id="clear">Clear</button>
+      <button id="theme" title="Toggle light/dark">◐</button>
+    </div>
+    <div class="hint" id="hint"></div>
+    <svg id="stage" viewBox="0 0 800 600" role="img" aria-label="Argument graph"></svg>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section class="card" aria-label="Analysis">
+    <div class="tabs" role="tablist">
+      <button class="on" data-tab="sem">Semantics</button>
+      <button data-tab="status">Acceptance</button>
+      <button data-tab="strat">Mechanism</button>
+      <button data-tab="data">Import / export</button>
+    </div>
+
+    <div class="pane on" id="pane-sem">
+      <h3>Semantics</h3>
+      <div class="seg" id="semSel" role="group" aria-label="Semantics"></div>
+      <p class="note" id="semNote"></p>
+      <h3>Extensions <span id="extCount"></span></h3>
+      <div class="chips" id="extChips"></div>
+      <div id="traceBox">
+        <h3>Grounded: iterate F from ∅</h3>
+        <div class="trace">
+          <button id="trPrev" aria-label="Previous step">◀</button>
+          <span id="trLabel" class="mono"></span>
+          <button id="trNext" aria-label="Next step">▶</button>
+          <button id="trPlay">Play</button>
+        </div>
+        <p class="note">Step k shows F<sup>k</sup>(∅): arguments defended by the previous set. Stops at the least fixed point.</p>
+      </div>
+      <h3>Labelling of the selected extension</h3>
+      <div id="labBox" class="mono"></div>
+    </div>
+
+    <div class="pane" id="pane-status">
+      <h3>Acceptance status (Def. 5.8)</h3>
+      <div id="statusTable"></div>
+      <p class="note"><span class="badge b-S">S</span> skeptically accepted (in every extension) · <span class="badge b-C">C</span> credulously accepted (in some) · <span class="badge b-R">R</span> rejected. If a semantics has no extension (stable on an odd cycle), every argument is reported rejected rather than vacuously skeptical.</p>
+    </div>
+
+    <div class="pane" id="pane-strat">
+      <h3>Agents</h3>
+      <p class="note">Use <b>Owner</b> mode to give arguments to agents x, y, z, and <b>Hide</b> mode to withhold them. The outcome is the grounded extension of everything revealed (Def. 5.21); u<sub>i</sub> = number of i's own arguments accepted. Unowned arguments are never put forward.</p>
+      <div id="agentTable"></div>
+      <div class="row"><button id="revealAll">Reveal all (truthful)</button></div>
+      <h3>Best responses to the current reports</h3>
+      <div id="brBox"></div>
+      <h3>Strategyproof? (Theorem 5.3)</h3>
+      <div class="row"><button id="spRun">Check all report profiles</button></div>
+      <div id="spBox"></div>
+      <h3>Theorem 5.4 condition</h3>
+      <div class="row">
+        <div class="seg" role="group" aria-label="Path reading">
+          <button data-path="simple" class="on">odd simple path</button>
+          <button data-path="walk">odd walk</button>
+        </div>
+        <label><input type="checkbox" id="inclSelf" checked> count α = β</label>
+      </div>
+      <div id="thmBox"></div>
+    </div>
+
+    <div class="pane" id="pane-data">
+      <h3>JSON (same format as <span class="mono">argengine.io</span>)</h3>
+      <textarea id="json" spellcheck="false" aria-label="Framework JSON"></textarea>
+      <div class="row">
+        <button id="jsonLoad">Load from text</button>
+        <button id="jsonDl">Download .json</button>
+        <button id="apxDl">Download .apx</button>
+        <button id="svgDl">Download .svg</button>
+        <button id="linkCopy">Copy share link</button>
+      </div>
+      <p class="note" id="dataMsg"></p>
+      <h3>Random framework</h3>
+      <div class="row">
+        <label>n <input type="number" id="rn" min="1" max="14" value="7"></label>
+        <label>p <input type="number" id="rp" min="0" max="1" step="0.05" value="0.25"></label>
+        <label><input type="checkbox" id="ragents" checked> split among 3 agents</label>
+        <button id="rgo">Generate</button>
+      </div>
+      <p class="note">Same model as the experiments: each attack a→b (a ≠ b) present with probability p; each argument goes to a uniformly random agent. The state is kept in the page URL, so the share link reopens this exact framework.</p>
+    </div>
+  </section>
+</main>
+<footer>Exact brute-force engine, ported from <span class="mono">argengine</span> (bitmask enumeration). Comfortable up to about 14 arguments.</footer>
+
+<script>
+// CORE-BEGIN — pure engine, no DOM. Mirrors argengine/{framework,semantics,strategic}.py.
+const Core = (() => {
+  const pc = m => { let c = 0; while (m) { m &= m - 1; c++; } return c; };
+  const bits = m => { const r = []; for (let i = 0; m; i++, m >>>= 1) if (m & 1) r.push(i); return r; };
+  function* submasks(m) { let s = m; while (true) { yield s; if (s === 0) return; s = (s - 1) & m; } }
+
+  function build(names, attacks) {
+    const n = names.length, idx = new Map(names.map((a, i) => [a, i]));
+    const att = new Array(n).fill(0), tgt = new Array(n).fill(0);
+    for (const [a, b] of attacks) { const i = idx.get(a), j = idx.get(b); tgt[i] |= 1 << j; att[j] |= 1 << i; }
+    return { n, names, idx, att, tgt, ALL: n ? (2 ** n - 1) | 0 : 0 };
+  }
+  const plus = (af, S) => { let p = 0; for (const i of bits(S)) p |= af.tgt[i]; return p; };
+  const cf = (af, S) => (plus(af, S) & S) === 0;
+  // characteristic function restricted to the sub-framework induced by R
+  function F(af, S, R = af.ALL) {
+    const p = plus(af, S); let out = 0;
+    for (const a of bits(R)) if (((af.att[a] & R) & ~p) === 0) out |= 1 << a;
+    return out;
+  }
+  function trace(af, R = af.ALL) { const t = []; let s = 0; for (;;) { const nx = F(af, s, R); t.push(nx); if (nx === s) return t; s = nx; } }
+  const grounded = (af, R = af.ALL) => { const t = trace(af, R); return t[t.length - 1]; };
+  function complete(af) {
+    const out = [];
+    for (let S = 0; S <= af.ALL; S++) if (cf(af, S) && F(af, S) === S) out.push(S);
+    return out;
+  }
+  const maximal = ms => ms.filter(m => !ms.some(o => o !== m && (m & o) === m));
+  function all(af) {
+    const comp = complete(af);
+    const rng = new Map(comp.map(m => [m, m | plus(af, m)]));
+    return {
+      grounded: [grounded(af)],
+      complete: comp,
+      preferred: maximal(comp),
+      stable: comp.filter(m => plus(af, m) === (af.ALL & ~m)),
+      "semi-stable": comp.filter(m => !comp.some(o => rng.get(o) !== rng.get(m) && (rng.get(m) & rng.get(o)) === rng.get(m))),
+    };
+  }
+  function status(exts, i) {
+    const b = 1 << i;
+    const cred = exts.some(E => E & b), skep = exts.length > 0 && exts.every(E => E & b);
+    return skep ? "S" : cred ? "C" : "R";
+  }
+  function labelling(af, S) { const p = plus(af, S); return { in: S, out: p & ~S, undec: af.ALL & ~S & ~p }; }
+
+  // ---------------- grounded direct mechanism
+  function mechanism(af, typeMasks) {
+    const cache = new Map();
+    const outcome = R => { let g = cache.get(R); if (g === undefined) { g = grounded(af, R); cache.set(R, g); } return g; };
+    const u = (i, o) => pc(typeMasks[i] & o);
+    const othersMask = i => typeMasks.reduce((m, t, j) => j === i ? m : m | t, 0);
+    function bestResponses(i, others) {
+      const ai = typeMasks[i]; let best = -1, arg = [];
+      for (const s of submasks(ai)) { const v = u(i, outcome(s | others)); if (v > best) { best = v; arg = [s]; } else if (v === best) arg.push(s); }
+      arg.sort((a, b) => pc(b) - pc(a) || a - b);
+      const truthful = u(i, outcome(ai | others));
+      return { agent: i, max: best, reports: arg, truthful, truthfulIsBest: truthful === best };
+    }
+    function isSP() {
+      const witnesses = [], manip = new Set();
+      for (let i = 0; i < typeMasks.length; i++) {
+        const ai = typeMasks[i];
+        for (const others of submasks(othersMask(i))) {
+          const tOut = outcome(ai | others), uT = u(i, tOut);
+          let bestS = null, bestU = uT;
+          for (const s of submasks(ai)) {
+            const v = u(i, outcome(s | others));
+            if (v > bestU || (v === bestU && bestS !== null && pc(s) > pc(bestS))) { bestS = s; bestU = v; }
+          }
+          if (bestS !== null) {
+            manip.add(i);
+            witnesses.push({ agent: i, others, truthfulOutcome: tOut, truthfulU: uT, report: bestS, outcome: outcome(bestS | others), u: bestU });
+            break;
+          }
+        }
+      }
+      return { sp: witnesses.length === 0, witnesses, manipulable: [...manip] };
+    }
+    return { outcome, u, bestResponses, isSP, othersMask };
+  }
+
+  // ---------------- odd paths (Theorem 5.4)
+  function oddWalk(af, s) {
+    const key = (v, p) => v * 2 + p, parent = new Map([[key(s, 0), null]]), q = [[s, 0]];
+    while (q.length) {
+      const [v, p] = q.shift();
+      for (const w of bits(af.tgt[v])) { const k = key(w, 1 - p); if (!parent.has(k)) { parent.set(k, [v, p]); q.push([w, 1 - p]); } }
+    }
+    const out = new Map();
+    for (const k of parent.keys()) if (k % 2 === 1) {
+      const path = []; let st = [k >> 1, 1];
+      while (st) { path.push(st[0]); st = parent.get(key(st[0], st[1])); }
+      out.set(k >> 1, path.reverse());
+    }
+    return out;
+  }
+  function oddSimple(af, s) {
+    const found = new Map(), path = [s];
+    (function dfs(v, visited) {
+      for (const w of bits(af.tgt[v])) {
+        const len = path.length;
+        if (w === s) { if (len % 2 === 1 && !found.has(s)) found.set(s, [...path, s]); continue; }
+        if ((visited >> w) & 1) continue;
+        path.push(w);
+        if (len % 2 === 1 && !found.has(w)) found.set(w, [...path]);
+        dfs(w, visited | (1 << w));
+        path.pop();
+      }
+    })(s, 1 << s);
+    return found;
+  }
+  function thm54(af, typeMasks, mode = "simple", includeSelf = true) {
+    const fn = mode === "walk" ? oddWalk : oddSimple, v = [];
+    typeMasks.forEach((t, i) => {
+      for (const a of bits(t)) { const paths = fn(af, a); for (const b of bits(t)) if (paths.has(b) && (includeSelf || a !== b)) v.push({ agent: i, source: a, target: b, path: paths.get(b) }); }
+    });
+    return v;
+  }
+  return { pc, bits, submasks, build, plus, cf, F, trace, grounded, complete, all, status, labelling, mechanism, oddWalk, oddSimple, thm54 };
+})();
+if (typeof module !== "undefined") module.exports = Core;
+// CORE-END
+</script>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const SVGNS = "http://www.w3.org/2000/svg";
+const W = 800, H = 600, R = 26;
+const AGENTS = ["x", "y", "z"], AGENT_VARS = ["--ax", "--ay", "--az"];
+const SEMS = ["grounded", "complete", "preferred", "stable", "semi-stable"];
+const SUB = "₀₁₂₃₄₅₆₇₈₉";
+const pretty = a => { const m = /^a(\d+)$/.exec(a); return m ? "α" + [...m[1]].map(d => SUB[+d]).join("") : a; };
+
+// ---------------- presets (argengine/examples.py)
+const P = (args, atts, types) => ({ args, atts, types });
+const PRESETS = {
+  "Figure 5.1": P(["a1","a2","a3","a4","a5"], [["a2","a1"],["a4","a1"],["a3","a2"],["a5","a4"]]),
+  "Figure 5.2": P(["a1","a2","a3"], [["a1","a2"],["a2","a1"]]),
+  "Figure 5.3": P(["a","b","c","d","e"], [["b","a"],["c","b"],["d","b"],["c","d"],["d","c"],["e","d"]]),
+  "Example 5.10 (mechanism)": P(["a1","a2","a3","a4","a5"], [["a1","a2"],["a2","a3"],["a3","a4"],["a3","a5"]], [["a1","a4","a5"],["a2"],["a3"]]),
+  "Example 5.11 (mechanism)": P(["a1","a2","a3","a4","a5","a6"], [["a1","a2"],["a2","a3"],["a3","a4"],["a3","a5"],["a6","a3"]], [["a1","a4","a5","a6"],["a2"],["a3"]]),
+  "Odd 3-cycle": P(["a","b","c"], [["a","b"],["b","c"],["c","a"]]),
+  "Preferred vs semi-stable": P(["a","b","c","d","e"], [["a","b"],["b","a"],["b","c"],["c","d"],["d","e"],["e","c"]]),
+  "Semi-stable without stable": P(["a","b","c","d","e","f"], [["a","b"],["b","a"],["b","c"],["c","c"],["d","e"],["e","f"],["f","d"]]),
+  "Self-attack": P(["a","b"], [["a","a"],["a","b"]]),
+};
+const NOTES = {
+  grounded: "Least fixed point of F: the most sceptical position. Always exactly one.",
+  complete: "Conflict-free S with F(S) = S. One per legal labelling (Def. 5.6).",
+  preferred: "⊆-maximal complete extensions (maximal in).",
+  stable: "Conflict-free S attacking everything outside it (no undec). May not exist.",
+  "semi-stable": "Complete extensions with ⊆-maximal range S ∪ S⁺ (minimal undec).",
+};
+
+// ---------------- state
+let st = { args: [], pos: {}, atts: [], owner: {}, hidden: new Set() };
+let ui = { mode: "move", sem: "grounded", ext: 0, traceStep: null, sel: null, pathMode: "simple", spResult: null, playing: null };
+
+function circle(args) {
+  const pos = {}, n = args.length, r = n <= 2 ? 150 : 215;
+  args.forEach((a, k) => { const t = 2 * Math.PI * k / Math.max(n, 1); pos[a] = [W / 2 + r * Math.sin(t), H / 2 - r * Math.cos(t)]; });
+  return pos;
+}
+function loadSpec(spec, pos) {
+  st = { args: [...spec.args], atts: spec.atts.map(e => [...e]), pos: pos || circle(spec.args), owner: {}, hidden: new Set(spec.hidden || []) };
+  (spec.types || []).forEach((t, i) => t.forEach(a => { if (i < 3) st.owner[a] = i; }));
+  ui.ext = 0; ui.traceStep = null; ui.sel = null; ui.spResult = null;
+  render();
+}
+const af = () => Core.build(st.args, st.atts);
+const typeMasks = A => [0, 1, 2].map(i => st.args.reduce((m, a, k) => st.owner[a] === i ? m | (1 << k) : m, 0));
+const hasAgents = () => Object.keys(st.owner).length > 0;
+const setStr = (A, m) => "{" + Core.bits(m).map(i => pretty(A.names[i])).join(", ") + "}";
+
+// ---------------- SVG drawing
+const svg = $("#stage");
+const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const cssv = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+function currentView(A) {
+  // returns {lab: {in,out,undec}|null, hidden mask, faded mask}
+  const tm = typeMasks(A);
+  if (hasAgents() && $("#pane-strat").classList.contains("on")) {
+    let revealed = 0; tm.forEach(t => revealed |= t);
+    const hid = st.args.reduce((m, a, k) => st.hidden.has(a) && st.owner[a] !== undefined ? m | (1 << k) : m, 0);
+    revealed &= ~hid;
+    const o = Core.grounded(A, revealed);
+    const p = Core.plus(A, o) & revealed;
+    return { lab: { in: o, out: p & ~o, undec: revealed & ~o & ~p }, faded: A.ALL & ~revealed, hiddenMask: hid, mech: true };
+  }
+  if (ui.sem === "grounded" && ui.traceStep !== null) {
+    const t = [0, ...Core.trace(A)], S = t[Math.min(ui.traceStep, t.length - 1)];
+    const p = Core.plus(A, S);
+    return { lab: { in: S, out: p & ~S, undec: A.ALL & ~S & ~p }, faded: 0, trace: true };
+  }
+  const exts = Core.all(A)[ui.sem];
+  if (!exts.length) return { lab: null, faded: 0 };
+  return { lab: Core.labelling(A, exts[Math.min(ui.ext, exts.length - 1)]), faded: 0 };
+}
+
+function edgePath(p, q, bidir) {
+  const [x1, y1] = p, [x2, y2] = q, dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1;
+  const ux = dx / d, uy = dy / d, off = bidir ? 18 : 0;
+  const mx = (x1 + x2) / 2 - uy * off, my = (y1 + y2) / 2 + ux * off;
+  // shorten both ends to the circle border along the curve's tangents
+  const t1x = mx - x1, t1y = my - y1, l1 = Math.hypot(t1x, t1y) || 1;
+  const t2x = x2 - mx, t2y = y2 - my, l2 = Math.hypot(t2x, t2y) || 1;
+  const sx = x1 + t1x / l1 * R, sy = y1 + t1y / l1 * R;
+  const ex = x2 - t2x / l2 * (R + 3), ey = y2 - t2y / l2 * (R + 3);
+  return `M${sx},${sy} Q${mx},${my} ${ex},${ey}`;
+}
+
+function render() {
+  const A = af(), view = currentView(A);
+  svg.innerHTML = "";
+  const defs = el("defs", {}, svg);
+  for (const [id, col] of [["ah", cssv("--edge")], ["ahf", cssv("--edge-faint")], ["ahs", cssv("--accent")]]) {
+    const m = el("marker", { id, viewBox: "0 0 10 10", refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" }, defs);
+    el("path", { d: "M0,0 L10,5 L0,10 z", fill: col }, m);
+  }
+  const has = new Set(st.atts.map(([a, b]) => a + "\u0000" + b));
+  const gE = el("g", {}, svg), gN = el("g", {}, svg);
+  const isFaded = a => (view.faded >> A.idx.get(a)) & 1;
+  const pathHi = ui.highlightPath ? new Set(ui.highlightPath.slice(1).map((v, k) => A.names[ui.highlightPath[k]] + "\u0000" + A.names[v])) : null;
+
+  st.atts.forEach(([a, b], k) => {
+    const faded = isFaded(a) || isFaded(b), hi = pathHi && pathHi.has(a + "\u0000" + b);
+    const stroke = hi ? cssv("--accent") : faded ? cssv("--edge-faint") : cssv("--edge");
+    const marker = hi ? "url(#ahs)" : faded ? "url(#ahf)" : "url(#ah)";
+    let d;
+    if (a === b) { const [x, y] = st.pos[a]; d = `M${x - 12},${y - R + 3} C${x - 40},${y - R - 52} ${x + 40},${y - R - 52} ${x + 12},${y - R + 1}`; }
+    else d = edgePath(st.pos[a], st.pos[b], has.has(b + "\u0000" + a));
+    el("path", { d, fill: "none", stroke, "stroke-width": hi ? 3 : 1.6, "marker-end": marker }, gE);
+    const hit = el("path", { d, fill: "none", stroke: "transparent", "stroke-width": 14, "data-edge": k, style: "cursor:pointer" }, gE);
+    hit.addEventListener("pointerdown", ev => { if (ui.mode === "del") { ev.stopPropagation(); st.atts.splice(k, 1); changed(); } });
+  });
+
+  st.args.forEach(a => {
+    const i = A.idx.get(a), [x, y] = st.pos[a], b = 1 << i;
+    let fill = cssv("--node"), stroke = cssv("--node-stroke"), dash = "";
+    if (view.lab) {
+      if (view.lab.in & b) { fill = cssv("--in"); stroke = cssv("--in-stroke"); }
+      else if (view.lab.out & b) { fill = cssv("--out"); stroke = cssv("--out-stroke"); dash = "5 4"; }
+      else if (view.lab.undec & b) { fill = cssv("--undec"); stroke = cssv("--undec-stroke"); }
+    }
+    const faded = isFaded(a);
+    const g = el("g", { "data-node": a, transform: `translate(${x},${y})`, style: "cursor:pointer", opacity: faded ? 0.35 : 1 }, gN);
+    const own = st.owner[a];
+    if (own !== undefined) el("circle", { r: R + 6, fill: "none", stroke: cssv(AGENT_VARS[own]), "stroke-width": 4, "stroke-dasharray": (view.hiddenMask >> i) & 1 ? "3 4" : "" }, g);
+    if (ui.sel === a) el("circle", { r: R + 11, fill: "none", stroke: cssv("--accent"), "stroke-width": 2, "stroke-dasharray": "2 3" }, g);
+    el("circle", { r: R, fill, stroke, "stroke-width": 2.2, "stroke-dasharray": dash }, g);
+    const t = el("text", { "text-anchor": "middle", "dominant-baseline": "central", "font-size": 16, fill: cssv("--ink") }, g);
+    t.textContent = pretty(a);
+    if (own !== undefined) { const s = el("text", { x: R + 4, y: -R - 2, "font-size": 12, "font-weight": 700, fill: cssv(AGENT_VARS[own]) }, g); s.textContent = AGENTS[own]; }
+    g.addEventListener("pointerdown", ev => nodeDown(ev, a));
+    g.addEventListener("dblclick", () => rename(a));
+  });
+
+  renderLegend(view);
+  renderPanels(A);
+  saveHash();
+}
+
+function renderLegend(view) {
+  const items = [];
+  if (view.lab) items.push(`<span><i class="sw" style="background:var(--in);border-color:var(--in-stroke)"></i>in</span>`,
+    `<span><i class="sw" style="background:var(--out);border-color:var(--out-stroke);border-style:dashed"></i>out</span>`,
+    `<span><i class="sw" style="background:var(--undec);border-color:var(--undec-stroke)"></i>undec</span>`);
+  else items.push(`<span class="bad">no ${ui.sem} extension exists</span>`);
+  if (hasAgents()) AGENTS.forEach((n, i) => items.push(`<span><i class="sw" style="border-color:var(${AGENT_VARS[i]})"></i>agent ${n}</span>`));
+  if (view.mech) items.push(`<span>faded = not revealed</span>`);
+  $("#legend").innerHTML = items.join("");
+}
+
+// ---------------- interaction
+const HINTS = {
+  move: "Drag nodes to arrange. Click a node to select it; double-click to rename. Keys: V move · A argument · E attack · D delete · O owner · H hide.",
+  arg: "Click on empty space to add an argument.",
+  att: "Click the attacker, then the target. Clicking an existing attack again removes it. Same node twice = self-attack.",
+  del: "Click a node (removes its attacks too) or an arrow.",
+  own: "Click a node to cycle its owner: none → x → y → z → none.",
+  hide: "Click an owned argument to withhold it from the mechanism. Open the Mechanism tab to see the outcome.",
+};
+function setMode(m) {
+  ui.mode = m; ui.pending = null;
+  $$("[data-mode]").forEach(b => b.classList.toggle("on", b.dataset.mode === m));
+  $("#hint").textContent = HINTS[m];
+  if (m === "own" || m === "hide") showTab("strat");
+  render();
+}
+function toSvg(ev) { const p = svg.createSVGPoint(); p.x = ev.clientX; p.y = ev.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); }
+function nextName() {
+  const used = new Set(st.args);
+  if (st.args.every(a => /^a\d+$/.test(a))) { for (let k = 1; ; k++) if (!used.has("a" + k)) return "a" + k; }
+  for (const c of "abcdefghijklmnopqrstuvwxyz") if (!used.has(c)) return c;
+  for (let k = 1; ; k++) if (!used.has("n" + k)) return "n" + k;
+}
+svg.addEventListener("pointerdown", ev => {
+  if (ev.target !== svg) return;
+  if (ui.mode === "arg") {
+    if (st.args.length >= 16) { $("#hint").textContent = "Limit is 16 arguments (exhaustive enumeration)."; return; }
+    const p = toSvg(ev), a = nextName(); st.args.push(a); st.pos[a] = [p.x, p.y]; changed();
+  } else if (ui.mode === "att") { ui.pending = null; render(); }
+  else { ui.sel = null; render(); }
+});
+function nodeDown(ev, a) {
+  ev.stopPropagation();
+  const m = ui.mode;
+  if (m === "move") {
+    ui.sel = a; render();
+    const start = toSvg(ev), [x0, y0] = st.pos[a];
+    const mv = e => { const p = toSvg(e); st.pos[a] = [Math.max(R, Math.min(W - R, x0 + p.x - start.x)), Math.max(R, Math.min(H - R, y0 + p.y - start.y))]; render(); };
+    const up = () => { window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up); };
+    window.addEventListener("pointermove", mv); window.addEventListener("pointerup", up);
+  } else if (m === "att") {
+    if (!ui.pending) { ui.pending = a; ui.sel = a; $("#hint").textContent = `Attacker ${pretty(a)} selected — now click the target.`; render(); return; }
+    const k = st.atts.findIndex(([x, y]) => x === ui.pending && y === a);
+    if (k >= 0) st.atts.splice(k, 1); else st.atts.push([ui.pending, a]);
+    ui.pending = null; ui.sel = null; $("#hint").textContent = HINTS.att; changed();
+  } else if (m === "del") {
+    st.args = st.args.filter(x => x !== a); st.atts = st.atts.filter(([x, y]) => x !== a && y !== a);
+    delete st.pos[a]; delete st.owner[a]; st.hidden.delete(a); changed();
+  } else if (m === "own") {
+    const o = st.owner[a]; if (o === undefined) st.owner[a] = 0; else if (o < 2) st.owner[a] = o + 1; else { delete st.owner[a]; st.hidden.delete(a); }
+    changed();
+  } else if (m === "hide") {
+    if (st.owner[a] === undefined) { $("#hint").textContent = "Only owned arguments can be hidden — use Owner mode first."; return; }
+    st.hidden.has(a) ? st.hidden.delete(a) : st.hidden.add(a); ui.highlightPath = null; render();
+  }
+}
+function rename(a) {
+  const n = prompt("Rename argument (aN shows as αN):", a);
+  if (!n || n === a) return;
+  if (st.args.includes(n) || !/^[A-Za-z0-9_]+$/.test(n)) { alert("Name must be new and use letters, digits or _."); return; }
+  st.args = st.args.map(x => x === a ? n : x); st.atts = st.atts.map(([x, y]) => [x === a ? n : x, y === a ? n : y]);
+  st.pos[n] = st.pos[a]; delete st.pos[a];
+  if (st.owner[a] !== undefined) { st.owner[n] = st.owner[a]; delete st.owner[a]; }
+  if (st.hidden.delete(a)) st.hidden.add(n);
+  ui.sel = n; changed();
+}
+function changed() { ui.ext = 0; ui.traceStep = null; ui.spResult = null; ui.highlightPath = null; render(); }
+
+// ---------------- panels
+function showTab(t) {
+  $$("[data-tab]").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
+  $$(".pane").forEach(p => p.classList.toggle("on", p.id === "pane-" + t));
+}
+function renderPanels(A) {
+  const exts = Core.all(A);
+  // semantics selector
+  $("#semSel").innerHTML = SEMS.map(s => `<button data-sem="${s}" class="${s === ui.sem ? "on" : ""}">${s} <span class="note">${exts[s].length}</span></button>`).join("");
+  $("#semNote").textContent = NOTES[ui.sem];
+  const E = exts[ui.sem];
+  $("#extCount").textContent = `(${E.length})`;
+  $("#extChips").innerHTML = E.length ? E.map((m, k) => `<span class="chip ${k === ui.ext && ui.traceStep === null ? "on" : ""}" data-ext="${k}">${setStr(A, m)}</span>`).join("")
+    : `<span class="warn">None. ${ui.sem === "stable" ? "Every argument is reported rejected under stable semantics." : ""}</span>`;
+  // trace
+  $("#traceBox").style.display = ui.sem === "grounded" ? "" : "none";
+  const tr = [0, ...Core.trace(A)];
+  const fix = tr.length - 1;
+  if (ui.traceStep === null) $("#trLabel").textContent = `final: ${setStr(A, tr[fix])} (fixed point after ${fix - 1 < 0 ? 0 : fix - 1} step${fix - 1 === 1 ? "" : "s"})`;
+  else $("#trLabel").textContent = `F${supNum(ui.traceStep)}(∅) = ${setStr(A, tr[ui.traceStep])}${ui.traceStep >= fix - 1 ? "  ← fixed point" : ""}`;
+  // labelling
+  const view = currentView(A);
+  $("#labBox").innerHTML = view.lab && !view.mech
+    ? `in = ${setStr(A, view.lab.in)}<br>out = ${setStr(A, view.lab.out)}<br>undec = ${setStr(A, view.lab.undec)}`
+    : view.mech ? `<span class="note">Showing the mechanism outcome (Mechanism tab open).</span>` : "—";
+  // status table
+  $("#statusTable").innerHTML = A.n ? `<div class="tscroll"><table><thead><tr><th>argument</th>${SEMS.map(s => `<th class="c">${s}</th>`).join("")}</tr></thead><tbody>` +
+    A.names.map((a, i) => `<tr><td>${pretty(a)}</td>${SEMS.map(s => { const v = Core.status(exts[s], i); return `<td class="c"><span class="badge b-${v}">${v}</span></td>`; }).join("")}</tr>`).join("") +
+    `</tbody></table></div>` : `<p class="note">Add some arguments first.</p>`;
+  renderStrategic(A);
+  // data
+  if (document.activeElement !== $("#json")) $("#json").value = JSON.stringify(toSpec(), null, 1).replace(/\[\n\s+"([^"]*)",\n\s+"([^"]*)"\n\s+\]/g, '["$1", "$2"]');
+}
+const supNum = k => String(k).split("").map(d => "⁰¹²³⁴⁵⁶⁷⁸⁹"[+d]).join("");
+
+function renderStrategic(A) {
+  const tm = typeMasks(A);
+  if (!hasAgents()) {
+    $("#agentTable").innerHTML = `<p class="warn">No agents yet. Switch to <b>Owner</b> mode and click arguments, or load Example 5.10.</p>`;
+    $("#brBox").innerHTML = $("#spBox").innerHTML = $("#thmBox").innerHTML = ""; return;
+  }
+  const M = Core.mechanism(A, tm);
+  const hidMask = st.args.reduce((m, a, k) => st.hidden.has(a) && st.owner[a] !== undefined ? m | (1 << k) : m, 0);
+  const reports = tm.map(t => t & ~hidMask);
+  const revealed = reports.reduce((m, r) => m | r, 0), out = M.outcome(revealed);
+  const truthOut = M.outcome(tm.reduce((m, t) => m | t, 0));
+  const dot = i => `<i class="agent-dot" style="background:var(${AGENT_VARS[i]})"></i>`;
+  $("#agentTable").innerHTML = `<div class="tscroll"><table><thead><tr><th>agent</th><th>type Aᵢ</th><th>report</th><th class="c">uᵢ now</th><th class="c">uᵢ truthful</th></tr></thead><tbody>` +
+    tm.map((t, i) => t ? `<tr><td>${dot(i)}${AGENTS[i]}</td><td>${setStr(A, t)}</td><td>${setStr(A, reports[i])}</td><td class="c">${M.u(i, out)}</td><td class="c">${M.u(i, truthOut)}</td></tr>` : "").join("") +
+    `</tbody></table></div><p class="note">Outcome g = ${setStr(A, out)}${hidMask ? ` · truthful outcome = ${setStr(A, truthOut)}` : ""}</p>`;
+  $("#brBox").innerHTML = tm.map((t, i) => {
+    if (!t) return "";
+    const others = reports.reduce((m, r, j) => j === i ? m : m | r, 0);
+    const br = M.bestResponses(i, others);
+    const list = br.reports.map(r => { const hid = t & ~r; return `<span class="chip" data-apply="${i}:${r}">${hid ? "hide " + setStr(A, hid) : "reveal all"}</span>`; }).join(" ");
+    return `<div class="row"><span>${dot(i)}<b>${AGENTS[i]}</b>: best u = ${br.max}</span> ${br.truthfulIsBest ? `<span class="ok">truthful is a best response</span>` : `<span class="bad">truthful gets only ${br.truthful}</span>`}</div><div class="chips" style="margin-left:18px">${list}</div>`;
+  }).join("") + `<p class="note">Click a best response to apply it (others keep their current reports).</p>`;
+  // SP
+  const sp = ui.spResult;
+  if (!sp) $("#spBox").innerHTML = `<p class="note">Enumerates every agent, every report of the others and every hidden subset (Thm 5.3 condition).</p>`;
+  else if (sp.tooBig) $("#spBox").innerHTML = `<p class="warn">Too many owned arguments for exhaustive search here.</p>`;
+  else $("#spBox").innerHTML = sp.sp ? `<p class="ok">Strategyproof: truth-telling is dominant for every agent.</p>`
+    : `<p class="bad">Not strategyproof — manipulable: ${sp.manipulable.map(i => AGENTS[i]).join(", ")}</p>` +
+      sp.witnesses.map((w, k) => `<div class="witness">${dot(w.agent)}<b>${AGENTS[w.agent]}</b> gains by hiding <b>${setStr(A, tm[w.agent] & ~w.report)}</b> when the others reveal ${setStr(A, w.others)}: u ${w.truthfulU} → ${w.u}<br><span class="note">outcome ${setStr(A, w.truthfulOutcome)} → ${setStr(A, w.outcome)}</span> <button data-witness="${k}">Show</button></div>`).join("");
+  // Thm 5.4
+  const v = Core.thm54(A, tm, ui.pathMode, $("#inclSelf").checked);
+  $("#thmBox").innerHTML = (v.length ? `<p class="bad">Condition fails: ${v.length} odd ${ui.pathMode === "walk" ? "walk" : "path"}${v.length > 1 ? "s" : ""} inside one agent's type.</p>`
+      : `<p class="ok">Condition holds: no agent owns α, β with an odd ${ui.pathMode === "walk" ? "walk" : "simple path"} α ⇝ β, so the mechanism is strategyproof (Thm 5.4).</p>`) +
+    v.slice(0, 12).map((x, k) => `<div class="row">${dot(x.agent)}<span class="chip" data-path="${k}">${x.path.map(j => pretty(A.names[j])).join(" → ")}</span></div>`).join("") +
+    (v.length > 12 ? `<p class="note">… ${v.length - 12} more</p>` : "") +
+    (v.length && sp && sp.sp ? `<p class="note">Strategyproof even though the condition fails: Thm 5.4 is sufficient, not necessary (cf. Ex. 5.11).</p>` : "");
+  ui._thm = v; ui._tm = tm;
+}
+
+// panel events (delegated)
+document.addEventListener("click", ev => {
+  const t = ev.target.closest("[data-sem],[data-ext],[data-tab],[data-mode],[data-apply],[data-witness],[data-path]");
+  if (!t) return;
+  if (t.dataset.sem) { ui.sem = t.dataset.sem; ui.ext = 0; ui.traceStep = null; render(); }
+  else if (t.dataset.ext) { ui.ext = +t.dataset.ext; ui.traceStep = null; render(); }
+  else if (t.dataset.tab) { showTab(t.dataset.tab); render(); }
+  else if (t.dataset.mode) setMode(t.dataset.mode);
+  else if (t.dataset.apply) {
+    const [i, r] = t.dataset.apply.split(":").map(Number);
+    st.args.forEach((a, k) => { if (st.owner[a] === i) ((r >> k) & 1) ? st.hidden.delete(a) : st.hidden.add(a); });
+    ui.highlightPath = null; render();
+  } else if (t.dataset.witness !== undefined && t.tagName === "BUTTON") {
+    const w = ui.spResult.witnesses[+t.dataset.witness], tm = ui._tm;
+    st.hidden = new Set();
+    st.args.forEach((a, k) => {
+      const o = st.owner[a]; if (o === undefined) return;
+      const shown = o === w.agent ? (w.report >> k) & 1 : (w.others >> k) & 1;
+      if (!shown) st.hidden.add(a);
+    });
+    ui.highlightPath = null; render();
+  } else if (t.dataset.path !== undefined) {
+    if (t.tagName === "BUTTON") { ui.pathMode = t.dataset.path; $$("[data-path]").forEach(b => b.tagName === "BUTTON" && b.classList.toggle("on", b === t)); ui.highlightPath = null; render(); }
+    else { const v = ui._thm[+t.dataset.path]; ui.highlightPath = ui.highlightPath === v.path ? null : v.path; render(); }
+  }
+});
+$("#inclSelf").addEventListener("change", () => { ui.highlightPath = null; render(); });
+$("#trPrev").onclick = () => { const A = af(), n = Core.trace(A).length; ui.traceStep = ui.traceStep === null ? n - 1 : Math.max(0, ui.traceStep - 1); render(); };
+$("#trNext").onclick = () => { const A = af(), n = Core.trace(A).length; ui.traceStep = ui.traceStep === null ? 0 : Math.min(n - 1, ui.traceStep + 1); render(); };
+$("#trPlay").onclick = () => {
+  if (ui.playing) { clearInterval(ui.playing); ui.playing = null; $("#trPlay").textContent = "Play"; return; }
+  ui.traceStep = 0; render(); $("#trPlay").textContent = "Stop";
+  ui.playing = setInterval(() => {
+    const n = Core.trace(af()).length;
+    if (ui.traceStep === null || ui.traceStep >= n - 1) { clearInterval(ui.playing); ui.playing = null; $("#trPlay").textContent = "Play"; return; }
+    ui.traceStep++; render();
+  }, 900);
+};
+$("#spRun").onclick = () => {
+  const A = af(), tm = typeMasks(A);
+  if (Core.pc(tm.reduce((m, t) => m | t, 0)) > 14) { ui.spResult = { tooBig: true }; render(); return; }
+  ui.spResult = Core.mechanism(A, tm).isSP(); render();
+};
+$("#revealAll").onclick = () => { st.hidden.clear(); ui.highlightPath = null; render(); };
+$("#relayout").onclick = () => { st.pos = circle(st.args); render(); };
+$("#clear").onclick = () => { if (!st.args.length || confirm("Remove every argument?")) loadSpec({ args: [], atts: [] }); };
+$("#theme").onclick = () => {
+  const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  r.dataset.theme = dark ? "light" : "dark"; render();
+};
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => render());
+document.addEventListener("keydown", ev => {
+  if (ev.target.matches("input,textarea,select") || ev.metaKey || ev.ctrlKey) return;
+  const m = { v: "move", a: "arg", e: "att", d: "del", o: "own", h: "hide" }[ev.key.toLowerCase()];
+  if (m) setMode(m);
+  if (ev.key === "Escape") { ui.pending = null; ui.sel = null; render(); }
+});
+
+// presets
+const sel = $("#preset");
+sel.innerHTML = `<option value="">Load example…</option>` + Object.keys(PRESETS).map(k => `<option>${k}</option>`).join("");
+sel.onchange = () => {
+  const p = PRESETS[sel.value]; if (!p) return;
+  loadSpec(p);
+  if (p.types) showTab("strat"); else showTab("sem");
+  render(); sel.value = "";
+};
+
+// ---------------- import / export
+function toSpec() {
+  const d = { arguments: [...st.args], attacks: st.atts.map(e => [...e]) };
+  if (hasAgents()) d.types = [0, 1, 2].map(i => st.args.filter(a => st.owner[a] === i));
+  return d;
+}
+function fromSpec(d, pos) {
+  if (!d || !Array.isArray(d.arguments) || !Array.isArray(d.attacks)) throw new Error("need 'arguments' and 'attacks' arrays");
+  const args = [...new Set([...d.arguments.map(String), ...(d.types || []).flat().map(String)])];
+  const atts = d.attacks.map(([a, b]) => [String(a), String(b)]);
+  for (const [a, b] of atts) if (!args.includes(a) || !args.includes(b)) throw new Error(`attack (${a}, ${b}) uses an unknown argument`);
+  if (args.length > 16) throw new Error("at most 16 arguments");
+  const okPos = pos && args.every(a => Array.isArray(pos[a]));
+  loadSpec({ args, atts, types: d.types, hidden: d.hidden }, okPos ? pos : null);
+}
+function download(name, text, type) {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+$("#jsonLoad").onclick = () => { try { fromSpec(JSON.parse($("#json").value)); $("#dataMsg").textContent = "Loaded."; } catch (e) { $("#dataMsg").textContent = "Error: " + e.message; } };
+$("#jsonDl").onclick = () => download("framework.json", JSON.stringify(toSpec(), null, 2), "application/json");
+$("#apxDl").onclick = () => download("framework.apx", st.args.map(a => `arg(${a}).`).concat(st.atts.map(([a, b]) => `att(${a},${b}).`)).join("\n") + "\n", "text/plain");
+$("#svgDl").onclick = () => {
+  const c = svg.cloneNode(true); c.setAttribute("xmlns", SVGNS);
+  c.insertBefore(el("rect", { width: W, height: H, fill: cssv("--bg") }), c.firstChild);
+  download("framework.svg", new XMLSerializer().serializeToString(c), "image/svg+xml");
+};
+$("#linkCopy").onclick = async () => {
+  saveHash();
+  try { await navigator.clipboard.writeText(location.href); $("#dataMsg").textContent = "Link copied. It encodes the whole framework, so it works on any copy of this page."; }
+  catch { $("#dataMsg").textContent = "Copy this URL from the address bar: " + location.href; }
+};
+$("#rgo").onclick = () => {
+  const n = Math.max(1, Math.min(14, +$("#rn").value || 7)), p = Math.max(0, Math.min(1, +$("#rp").value));
+  const args = Array.from({ length: n }, (_, k) => "a" + (k + 1)), atts = [];
+  for (const a of args) for (const b of args) if (a !== b && Math.random() < p) atts.push([a, b]);
+  const types = $("#ragents").checked ? [[], [], []] : null;
+  if (types) args.forEach(a => types[Math.floor(Math.random() * 3)].push(a));
+  loadSpec({ args, atts, types: types || undefined });
+};
+
+// URL hash state: shareable without any server
+function saveHash() {
+  const d = toSpec(); d.pos = Object.fromEntries(st.args.map(a => [a, st.pos[a].map(Math.round)]));
+  if (st.hidden.size) d.hidden = [...st.hidden];
+  const h = "#" + encodeURIComponent(JSON.stringify(d));
+  if (location.hash !== h) history.replaceState(null, "", h);
+}
+function init() {
+  $("#hint").textContent = HINTS.move;
+  let d = null;
+  if (location.hash.length > 1) { try { d = JSON.parse(decodeURIComponent(location.hash.slice(1))); } catch (e) { d = null; } }
+  if (d) { try { fromSpec(d, d.pos); if (d.types) showTab("strat"); render(); return; } catch (e) { /* bad link: fall back */ } }
+  loadSpec(PRESETS["Figure 5.1"]);
+}
+init();
+})();
+</script>
+</body>
+</html>
