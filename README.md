@@ -8,7 +8,7 @@ Reference: G. Weiss (ed.), *Multiagent Systems*, 2nd ed., Chapter 5 "Argumentati
 
 | Deliverable | Location |
 |---|---|
-| Code | `argengine/` (library), `experiments/` (experiment scripts), `tests/` (161 tests) |
+| Code | `argengine/` (library), `experiments/` (experiment scripts), `tests/` (176 tests) |
 | Readme | this file |
 | Report | `report/report.pdf` (source: `report/report.tex`) |
 | Demonstration | `demo/demo.ipynb` (executed, with outputs), `demo/demo.html` (static copy), `python -m argengine.demo` (CLI) |
@@ -73,7 +73,7 @@ For speed, `MechanismInstance(arguments, attacks, types)` caches the grounded ex
 ## Running
 
 ```bash
-.venv/bin/python -m pytest                              # 161 tests, ~2 s
+.venv/bin/python -m pytest                              # 176 tests, ~3 s
 .venv/bin/python -m argengine.demo                      # CLI walkthrough of every book example
 .venv/bin/python -m argengine.demo --figures demo/figures
 .venv/bin/python -m argengine.demo --file my_af.json    # your own framework (JSON or ASPARTIX .apx)
@@ -83,6 +83,20 @@ For speed, `MechanismInstance(arguments, attacks, types)` caches the grounded ex
 (cd report && tectonic report.tex)                      # the report PDF (or xelatex report.tex, run twice)
 .venv/bin/python demo/build_notebook.py && (cd demo && ../.venv/bin/python -m nbconvert --to notebook --execute --inplace demo.ipynb)
 ```
+
+`python -m argengine.demo --figures demo/figures` also saves `*_grounded_trace.png` (the F-iteration step by step), `*_lattice.png` (complete extensions ordered by ⊆, marked grounded / preferred / semi-stable / stable) and `example_5_1x_best_response_x.png` (every report of agent x with the resulting utilities). `analyse.py` also writes `fig_cond_vs_sp.png` (condition × strategyproofness; the Q2 slice is empty), `fig_q3_classes.png` (offset / self-neutralised / dormant per p) and `fig_manipulable_agents.png` (how many agents can profit, per p).
+
+## Interactive playground
+
+Open `demo/playground.html` in any browser. It is a single self-contained file: no install, no server, no network access, so it can be emailed, committed or hosted as-is (e.g. GitHub Pages).
+
+- **Edit:** add arguments and attacks with the mouse, drag, rename (double-click), delete, or load any book example.
+- **Semantics:** grounded / complete / preferred / stable / semi-stable extensions, each shown as its labelling (in / out / undec); step through F¹(∅), F²(∅), … for the grounded extension.
+- **Acceptance:** skeptical / credulous / rejected for every argument under every semantics.
+- **Mechanism:** give arguments to agents x, y, z, hide some, and see the grounded outcome and utilities; best responses (one click to apply); full Theorem 5.3 strategyproofness check with witnesses; Theorem 5.4 condition (odd simple path or odd walk) with the offending path highlighted.
+- **Import / export:** JSON (same format as `argengine.io`), `.apx`, `.svg`; the whole framework is kept in the URL, so a link reopens it exactly.
+
+Its engine is a JavaScript port of `argengine` (same bitmask algorithms). On 400 random frameworks with self-attacks it agrees with the Python code on every semantics, the grounded trace, acceptance status, strategyproofness, the manipulable agents, and all four readings of the Theorem 5.4 condition.
 
 JSON input format: `{"arguments": ["a","b"], "attacks": [["a","b"]], "types": [["a"],["b"]]}`. The `types` field is optional; if it is present, the demo also runs the strategic analysis.
 

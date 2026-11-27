@@ -17,6 +17,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -161,6 +162,85 @@ def explain_q3(rec, m: MechanismInstance, outdir: Path, tag: str) -> str:
     return "\n".join(lines)
 
 
+# ------------------------------------------------------------- extra plots
+def _bar_labels(ax, bars, fmt="{:d}"):
+    for b in bars:
+        h = b.get_height()
+        ax.annotate(fmt.format(int(round(h))), (b.get_x() + b.get_width() / 2, h), ha="center", va="bottom",
+                    fontsize=7, xytext=(0, 1), textcoords="offset points")
+
+
+def plot_extra(df: pd.DataFrame, q3: pd.DataFrame, R: Path) -> None:
+    """Condition × strategyproofness, Q3 classes and manipulable-agent counts, per p."""
+    ps = sorted(df.p.unique())
+    x = np.arange(len(ps))
+
+    # 1. condition (primary reading) × strategyproofness, stacked per p
+    cats = [("cond ∧ SP", lambda g: g.cond_simple & g.strategyproof, "#2ca02c"),
+            ("cond ∧ ¬SP  (Q2)", lambda g: g.cond_simple & ~g.strategyproof, "#d62728"),
+            ("¬cond ∧ SP  (Q3)", lambda g: ~g.cond_simple & g.strategyproof, "#1f77b4"),
+            ("¬cond ∧ ¬SP", lambda g: ~g.cond_simple & ~g.strategyproof, "#c8c8c8")]
+    fig, ax = plt.subplots(figsize=(6.4, 3.9))
+    bottom = np.zeros(len(ps))
+    for label, sel, colour in cats:
+        vals = np.array([int(sel(df[df.p == p]).sum()) for p in ps])
+        bars = ax.bar(x, vals, 0.55, bottom=bottom, color=colour, label=f"{label}: {', '.join(map(str, vals))}")
+        for b, v, y0 in zip(bars, vals, bottom):
+            if v >= 40:
+                ax.text(b.get_x() + b.get_width() / 2, y0 + v / 2, str(v), ha="center", va="center", fontsize=8)
+        bottom += vals
+    ax.set_xticks(x, [f"p = {p}" for p in ps])
+    ax.set_ylabel("instances")
+    ax.set_title("Theorem 5.4 condition (odd simple path) × strategyproofness\n"
+                 "the red Q2 slice is empty at every p", fontsize=9)
+    ax.legend(fontsize=7, loc="upper left", bbox_to_anchor=(1.01, 1), frameon=False)
+    fig.tight_layout()
+    fig.savefig(R / "fig_cond_vs_sp.png", dpi=150)
+    plt.close(fig)
+
+    # 2. Q3 explanations per p
+    classes = [("offset", "#1f77b4"), ("self-neutralised", "#ff7f0e"), ("dormant", "#9467bd")]
+    fig, ax = plt.subplots(figsize=(6.4, 3.6))
+    w = 0.26
+    for k, (cls, colour) in enumerate(classes):
+        vals = [int((q3[q3.p == p].instance_class == cls).sum()) for p in ps]
+        bars = ax.bar(x + (k - 1) * w, [v if v else np.nan for v in vals], w, color=colour, label=cls)
+        for b, v in zip(bars, vals):
+            ax.annotate(str(v), (b.get_x() + b.get_width() / 2, v or 0.75), ha="center", va="bottom",
+                        fontsize=7, xytext=(0, 1), textcoords="offset points")
+    ax.set_yscale("log")
+    ax.set_ylim(0.7, 2000)
+    ax.set_xticks(x, [f"p = {p}" for p in ps])
+    ax.set_ylabel("Q3 instances (log scale)")
+    ax.set_title("Why strategyproof instances still violate the Theorem 5.4 condition (Q3)", fontsize=9)
+    ax.legend(fontsize=8, frameon=False)
+    fig.tight_layout()
+    fig.savefig(R / "fig_q3_classes.png", dpi=150)
+    plt.close(fig)
+
+    # 3. how many of the 3 agents can manipulate
+    n_manip = df.manipulable_agents.apply(len)
+    ks = range(int(n_manip.max()) + 1)
+    fig, ax = plt.subplots(figsize=(6.4, 3.6))
+    w = 0.8 / len(ks)
+    colours = ["#2ca02c", "#fdae61", "#f46d43", "#a50026"]
+    for k in ks:
+        vals = [float((n_manip[df.p == p] == k).mean()) for p in ps]
+        bars = ax.bar(x + (k - (len(ks) - 1) / 2) * w, vals, w, color=colours[k % len(colours)],
+                      label=f"{k} agent{'s' if k != 1 else ''}" + (" (strategyproof)" if k == 0 else ""))
+        for b, v in zip(bars, vals):
+            ax.annotate(f"{v:.2f}", (b.get_x() + b.get_width() / 2, v), ha="center", va="bottom", fontsize=7,
+                        xytext=(0, 1), textcoords="offset points")
+    ax.set_xticks(x, [f"p = {p}" for p in ps])
+    ax.set_ylabel("fraction of instances")
+    ax.set_ylim(0, 1)
+    ax.set_title("Number of agents with a profitable deviation (hiding arguments)", fontsize=9)
+    ax.legend(fontsize=8, frameon=False)
+    fig.tight_layout()
+    fig.savefig(R / "fig_manipulable_agents.png", dpi=150)
+    plt.close(fig)
+
+
 # ---------------------------------------------------------------------- main
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser()
@@ -276,6 +356,8 @@ def main(argv=None) -> None:
     md += ["## Q3. Strategyproof although the condition fails", "", md_table(pd.DataFrame(rows)), ""]
     agent_cnt = Counter(c for d in q3.agent_classes for c in d.values())
     md += [f"Per violating agent: {dict(agent_cnt)}.", ""]
+
+    plot_extra(df, q3, R)
 
     # offset subtype: is the best freeing deviation a tie (net 0) or strictly worse?
     ties = Counter()
