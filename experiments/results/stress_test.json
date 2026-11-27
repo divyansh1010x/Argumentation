@@ -1,0 +1,47 @@
+{
+  "agents": 3,
+  "reading": "odd simple path, alpha != beta (weakest)",
+  "self_attacks": true,
+  "exhaustive": {
+    "1": {
+      "instances": 6,
+      "condition_holds": 6,
+      "counterexamples": 0,
+      "examples": []
+    },
+    "2": {
+      "instances": 144,
+      "condition_holds": 108,
+      "counterexamples": 0,
+      "examples": []
+    },
+    "3": {
+      "instances": 13824,
+      "condition_holds": 5400,
+      "counterexamples": 0,
+      "examples": []
+    },
+    "4": {
+      "instances": 5308416,
+      "condition_holds": 458352,
+      "counterexamples": 0,
+      "examples": []
+    }
+  },
+  "random": {
+    "instances": 300000,
+    "condition_holds": 50415,
+    "counterexamples": 0,
+    "examples": [],
+    "n_range": [
+      3,
+      9
+    ],
+    "p_range": [
+      0.1,
+      0.5
+    ],
+    "seed": 2026
+  },
+  "seconds": 52.1
+}
